@@ -194,7 +194,7 @@ def _freebsd_ip_route_add(net, gw):
     rc, stdout, stderr = run_cmd('route get %s' % net, failok=True)
     if rc == 0:
         if not ('gateway: %s' % gw in stdout):
-            run_cmd('route del %s' % net)
+            run_cmd('route del %s' % net, failok=True)
             run_cmd('route add %s %s' % (net, gw))
     else:
         run_cmd('route add %s %s' % (net, gw))
