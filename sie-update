@@ -62,6 +62,7 @@ def update_file(fname, url):
         print 'Updated %s from %s.' % (fname, url)
 
 def do_update(funcs, iface, etcdir):
+    funcs['init'](iface)
     hwaddr = funcs['get_hw_address'](iface)
     hosts = http_fetch_contents(URL_HOSTS)
     vlans = set()
@@ -136,6 +137,12 @@ def do_update(funcs, iface, etcdir):
     update_file(os.path.join(etcdir, FNAME_CHALIAS), URL_CHALIAS % site)
     update_file(os.path.join(etcdir, FNAME_GRALIAS), URL_GRALIAS)
     update_file(os.path.join(etcdir, FNAME_OPALIAS), URL_OPALIAS)
+
+def _linux_init(iface):
+    run_cmd('vconfig set_name_type DEV_PLUS_VID_NO_PAD')
+
+def _freebsd_init(iface):
+    pass
 
 def _linux_get_hw_address(iface):
     try:
@@ -275,6 +282,7 @@ def main():
     global VERBOSE
 
     linux_net_funcs = {
+        'init':             _linux_init,
         'get_hw_address':   _linux_get_hw_address,
         'get_vlans':        _linux_get_vlans,
         'ip_addr_add':      _linux_ip_addr_add,
@@ -286,6 +294,7 @@ def main():
     }
 
     freebsd_net_funcs = {
+        'init':             _freebsd_init,
         'get_hw_address':   _freebsd_get_hw_address,
         'get_vlans':        _freebsd_get_vlans,
         'ip_addr_add':      _freebsd_ip_addr_add,
