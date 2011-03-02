@@ -182,11 +182,12 @@ def _freebsd_get_vlans(iface):
         sys.exit(1)
     return vlans
 
-def _linux_ip_addr_add(ip, iface):
-    run_cmd('ip addr add %s/24 dev %s' % (ip, iface))
+def _linux_ip_addr_add(ip, iface, netmask=24):
+    run_cmd('ip addr add %s/%s dev %s' % (ip, netmask, iface))
 
-def _freebsd_ip_addr_add(ip, iface):
-    run_cmd('ifconfig %s alias %s netmask 0xffffff00' % (iface, ip))
+def _freebsd_ip_addr_add(ip, iface, netmask=24):
+    netmask = hex((1 << 32) - (1 << (32 - netmask))) # bah
+    run_cmd('ifconfig %s alias %s netmask %s' % (iface, ip, netmask))
 
 def _linux_ip_route_add(net, gw):
     rc, stdout, stderr = run_cmd('ip route show %s' % net)
