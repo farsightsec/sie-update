@@ -93,9 +93,14 @@ def do_update(funcs, iface, etcdir):
             s_site = s[0]
             s_net = s[1]
             s_vpnnet = s[2]
+            if len(s) >= 3:
+                s_vpnmask = int(s[3])
+            else:
+                s_vpnmask = 24
             if site == s_site:
                 net = s_net
                 vpnnet = s_vpnnet
+                vpnmask = s_vpnmask
                 found_site = True
                 break
     except:
@@ -121,7 +126,7 @@ def do_update(funcs, iface, etcdir):
         if vlan == 7:
             ip = '%s.%s' % (vpnnet, x)
             gw = '%s.254' % vpnnet
-            funcs['set_vlan_up'](iface, vlan, ip)
+            funcs['set_vlan_up'](iface, vlan, ip, vpnmask)
             funcs['set_vlan_mtu'](iface, vlan, 1280)
             funcs['ip_route_add']('10.255.0.0/16', gw)
         else:
