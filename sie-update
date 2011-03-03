@@ -228,7 +228,7 @@ def _linux_set_vlan_mtu(iface, vlan, mtu):
 def _freebsd_set_vlan_mtu(iface, vlan, mtu):
     run_cmd('ifconfig vlan%s mtu %s' % (vlan, mtu))
 
-def _linux_set_vlan_up(iface, vlan, ip, netmask):
+def _linux_set_vlan_up(iface, vlan, ip, netmask=24):
     vlan_iface = '%s.%s' % (iface, vlan)
 
     rc, stdout, stderr = run_cmd('ip addr show %s' % vlan_iface, failok=True)
@@ -251,7 +251,7 @@ def _linux_set_vlan_up(iface, vlan, ip, netmask):
             _linux_ip_addr_add(ip, vlan_iface, netmask)
     run_cmd('ip link set up dev %s' % vlan_iface)
 
-def _freebsd_set_vlan_up(iface, vlan, ip, netmask):
+def _freebsd_set_vlan_up(iface, vlan, ip, netmask=24):
     vlan_iface = 'vlan%s' % vlan
 
     rc, stdout, stderr = run_cmd('ifconfig %s' % vlan_iface, failok=True)
