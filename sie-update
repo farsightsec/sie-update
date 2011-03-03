@@ -237,13 +237,13 @@ def _linux_set_vlan_up(iface, vlan, ip):
         _linux_ip_addr_add(ip, vlan_iface)
         print 'Added new VLAN %s.' % vlan
     else:
-        current_ips = set(re.findall('inet ([0-9.]+)', stdout))
+        current_ips = set(re.findall('inet ([0-9./]+)', stdout))
         if ip in current_ips:
             rm_ips = set(current_ips)
             rm_ips.remove(ip)
             if rm_ips:
                 for x in rm_ips:
-                    run_cmd('ip addr del %s/24 dev %s' % (x, vlan_iface))
+                    run_cmd('ip addr del %s dev %s' % (x, vlan_iface))
         else:
             run_cmd('ip addr flush dev %s' % vlan_iface)
             _linux_ip_addr_add(ip, vlan_iface)
