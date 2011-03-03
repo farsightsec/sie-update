@@ -77,8 +77,8 @@ def do_update(funcs, iface, etcdir):
                 x = s[2]
                 break
     except:
-        print >>sys.stderr, 'Error: failed to parse SIE hosts file'
-        sys.exit(1)
+        print >>sys.stderr, 'Error: failed to parse SIE hosts file\n'
+        raise
 
     if not found_host:
         print >>sys.stderr, 'Error: hardware address %s not found in SIE hosts file' % hwaddr
@@ -103,8 +103,8 @@ def do_update(funcs, iface, etcdir):
                 found_site = True
                 break
     except:
-        print >>sys.stderr, 'Error: failed to parse SIE sites file'
-        sys.exit(1)
+        print >>sys.stderr, 'Error: failed to parse SIE sites file\n'
+        raise
 
     if not found_site:
         print >>sys.stderr, 'Error: unknown site %s in SIE hosts file' % site
@@ -117,8 +117,8 @@ def do_update(funcs, iface, etcdir):
             line = int(line)
             channels.append(line)
     except:
-        print >>sys.stderr, 'Error: failed to parse SIE channels file'
-        sys.exit(1)
+        print >>sys.stderr, 'Error: failed to parse SIE channels file\n'
+        raise
 
     for ch in channels:
         vlan = ch
