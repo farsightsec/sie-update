@@ -233,7 +233,7 @@ def _linux_set_vlan_up(iface, vlan, ip):
 
     rc, stdout, stderr = run_cmd('ip addr show %s' % vlan_iface, failok=True)
     if rc != 0:
-        run_cmd('vconfig add %s %s' % (iface, vlan))
+        run_cmd('ip link add link %s name %s type vlan id %s' % (iface, vlan_iface, vlan))
         _linux_ip_addr_add(ip, vlan_iface)
         print 'Added new VLAN %s.' % vlan
     else:
@@ -269,7 +269,7 @@ def _freebsd_set_vlan_up(iface, vlan, ip):
                 run_cmd('ifconfig %s -alias %s' % (vlan_iface, x))
 
 def _linux_remove_vlan(iface, vlan):
-    run_cmd('vconfig rem %s.%s' % (iface, vlan))
+    run_cmd('ip link del dev %s.%s' % (iface, vlan))
     print 'Removed old VLAN %s.' % vlan
 
 def _freebsd_remove_vlan(iface, vlan):
