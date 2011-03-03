@@ -228,7 +228,7 @@ def _linux_set_vlan_mtu(iface, vlan, mtu):
 def _freebsd_set_vlan_mtu(iface, vlan, mtu):
     run_cmd('ifconfig vlan%s mtu %s' % (vlan, mtu))
 
-def _linux_set_vlan_up(iface, vlan, ip):
+def _linux_set_vlan_up(iface, vlan, ip, netmask):
     vlan_iface = '%s.%s' % (iface, vlan)
 
     rc, stdout, stderr = run_cmd('ip addr show %s' % vlan_iface, failok=True)
@@ -238,18 +238,20 @@ def _linux_set_vlan_up(iface, vlan, ip):
         print 'Added new VLAN %s.' % vlan
     else:
         current_ips = set(re.findall('inet ([0-9./]+)', stdout))
-        if ip in current_ips:
+        ipnm = '%s/%s' % (ip, netmask)
+        if ipnm in current_ips:
             rm_ips = set(current_ips)
-            rm_ips.remove(ip)
+            rm_ips.remove(ipnm)
             if rm_ips:
                 for x in rm_ips:
+                    print 'Removing obsolete IP address %s from interface %s' % (x, vlan_iface)
                     run_cmd('ip addr del %s dev %s' % (x, vlan_iface))
         else:
             run_cmd('ip addr flush dev %s' % vlan_iface)
-            _linux_ip_addr_add(ip, vlan_iface)
+            _linux_ip_addr_add(ip, vlan_iface, netmask)
     run_cmd('ip link set up dev %s' % vlan_iface)
 
-def _freebsd_set_vlan_up(iface, vlan, ip):
+def _freebsd_set_vlan_up(iface, vlan, ip, netmask):
     vlan_iface = 'vlan%s' % vlan
 
     rc, stdout, stderr = run_cmd('ifconfig %s' % vlan_iface, failok=True)
@@ -263,7 +265,7 @@ def _freebsd_set_vlan_up(iface, vlan, ip):
         if ip in current_ips:
             rm_ips.remove(ip)
         else:
-            _freebsd_ip_addr_add(ip, vlan_iface)
+            _freebsd_ip_addr_add(ip, vlan_iface, netmask)
         if rm_ips:
             for x in rm_ips:
                 run_cmd('ifconfig %s -alias %s' % (vlan_iface, x))
