@@ -124,10 +124,8 @@ def do_update(funcs, iface, etcdir):
         vlan = ch
         if vlan == 7:
             ip = '%s.%s' % (vpnnet, x)
-            gw = '%s.254' % vpnnet
             funcs['set_vlan_up'](iface, vlan, ip, vpnmask)
             funcs['set_vlan_mtu'](iface, vlan, 1280)
-            funcs['ip_route_add']('10.255.0.0/16', gw)
         else:
             ip = '%s.%s.%s' % (net, ch, x)
             funcs['set_vlan_up'](iface, vlan, ip)
@@ -186,24 +184,6 @@ def _linux_ip_addr_add(ip, iface, netmask=24):
 def _freebsd_ip_addr_add(ip, iface, netmask=24):
     netmask = hex((1 << 32) - (1 << (32 - netmask))) # bah
     run_cmd('ifconfig %s alias %s netmask %s' % (iface, ip, netmask))
-
-def _linux_ip_route_add(net, gw):
-    rc, stdout, stderr = run_cmd('ip route show %s' % net)
-    if rc == 0 and stdout:
-        if not ('via %s' % gw in stdout):
-            run_cmd('ip route del %s' % net, failok=True)
-            run_cmd('ip route add %s via %s' % (net, gw))
-    else:
-        run_cmd('ip route add %s via %s' % (net, gw))
-
-def _freebsd_ip_route_add(net, gw):
-    rc, stdout, stderr = run_cmd('route get %s' % net, failok=True)
-    if rc == 0:
-        if not ('gateway: %s' % gw in stdout):
-            run_cmd('route del %s' % net, failok=True)
-            run_cmd('route add %s %s' % (net, gw))
-    else:
-        run_cmd('route add %s %s' % (net, gw))
 
 def _linux_set_link_up(iface):
     rc, stdout, stderr = run_cmd('ip link show %s' % iface, failok=True)
@@ -286,7 +266,6 @@ def main():
         'get_hw_address':   _linux_get_hw_address,
         'get_vlans':        _linux_get_vlans,
         'ip_addr_add':      _linux_ip_addr_add,
-        'ip_route_add':     _linux_ip_route_add,
         'set_link_up':      _linux_set_link_up,
         'set_vlan_up':      _linux_set_vlan_up,
         'set_vlan_mtu':     _linux_set_vlan_mtu,
@@ -297,7 +276,6 @@ def main():
         'get_hw_address':   _freebsd_get_hw_address,
         'get_vlans':        _freebsd_get_vlans,
         'ip_addr_add':      _freebsd_ip_addr_add,
-        'ip_route_add':     _freebsd_ip_route_add,
         'set_link_up':      _freebsd_set_link_up,
         'set_vlan_up':      _freebsd_set_vlan_up,
         'set_vlan_mtu':     _freebsd_set_vlan_mtu,
