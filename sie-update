@@ -8,7 +8,7 @@ import re
 import sys
 import urllib2
 
-URL_BASE = 'http://mgmt.sie.isc.org/sie-update/'
+URL_BASE = 'http://update.sie-network.net:51080/sie-update/'
 URL_HOSTS = URL_BASE + 'hosts.txt'
 URL_SITES = URL_BASE + 'sites.txt'
 URL_CHANNELS = URL_BASE + 'channels.txt'
