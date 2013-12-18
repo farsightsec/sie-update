@@ -4,9 +4,13 @@ from optparse import OptionParser
 from subprocess import Popen, PIPE
 import glob
 import os
+import random
 import re
 import sys
+import tempfile
+import time
 import urllib2
+import urlparse
 
 URL_BASE = 'http://update.sie-network.net:51080/sie-update/'
 URL_HOSTS = URL_BASE + 'hosts.txt'
@@ -26,6 +30,12 @@ VERBOSE = False
 class CommandFailed(Exception):
     pass
 
+class UpdateFailed(Exception):
+    pass
+
+class CacheMiss(Exception):
+    pass
+
 def run_cmd(cmd, failok=False):
     if VERBOSE:
         print cmd
@@ -42,28 +52,73 @@ def run_cmd(cmd, failok=False):
         raise CommandFailed
     return (rc, stdout, stderr)
 
-def http_fetch_contents(url):
+def get_cache_dir(base_dir, create=True):
+    cache_dir = os.path.join(base_dir, 'sie-update')
+    if os.path.exists(cache_dir) and not os.path.isdir(cache_dir):
+        raise OSError(17, 
+                "Cache exists and is not a directory '%s'" % cache_dir)
+
+    if create and not os.path.exists(cache_dir):
+        os.mkdir(cache_dir)
+
+    return cache_dir
+
+def cache_file_for_url(url, cache_dir):
+    return os.path.join(cache_dir,
+            os.path.basename(urlparse.urlparse(url).path))
+
+def cache_fetch_contents(url, cache_dir, max_age=604800):
+    cache_file = cache_file_for_url(url, cache_dir)
+
+    if not os.path.isfile(cache_file):
+        raise CacheMiss, "Cache file '%s' does not exist"
+
+    if max_age > 0 and time.time() - os.stat(cache_file).st_mtime > max_age:
+        raise CacheMiss, "Cache file '%s' has expired"
+
+    with open(cache_file) as f:
+        return f.read()
+
+def cache_put_contents(url, data, cache_dir):
+    cache_file = cache_file_for_url(url, cache_dir)
+    with tempfile.NamedTemporaryFile(dir=cache_dir, prefix='cache') as f:
+        f.write(data)
+        f.file.close()
+        os.chmod(f.name, 0644)
+        os.rename(f.name, cache_file)
+        f.delete = False
+
+def http_fetch_contents(url, cache_dir=None):
     if VERBOSE:
         print 'Fetching %s...' % url
     try:
         data = urllib2.urlopen(url).read()
+        if cache_dir:
+            cache_put_contents(url, data, cache_dir)
         return data
     except:
-        print >>sys.stderr, 'Error: HTTP fetch failed for URL %s' % url
-        sys.exit(1)
+        print >>sys.stderr, 'Error: HTTP fetch failed for URL %s.' % url
+        if cache_dir:
+            try:
+                print >>sys.stderr, 'Failing over to cache %s.' % cache_dir
+                return cache_fetch_contents(url, cache_dir)
+            except CacheMiss:
+                print >>sys.stderr, 'Error: No cache for URL %s' % url
+        raise UpdateFailed
 
-def update_file(fname, url):
+def update_file(fname, url, cache_dir=None):
     old_contents = None
     if os.path.isfile(fname):
         old_contents = open(fname).read()
-    new_contents = http_fetch_contents(url)
+    new_contents = http_fetch_contents(url, cache_dir)
     if old_contents != new_contents:
         open(fname, 'w').write(new_contents)
         print 'Updated %s from %s.' % (fname, url)
 
 def do_update(funcs, iface, etcdir):
+    cache_dir = get_cache_dir(etcdir, create=True)
     hwaddr = funcs['get_hw_address'](iface)
-    hosts = http_fetch_contents(URL_HOSTS)
+    hosts = http_fetch_contents(URL_HOSTS, cache_dir)
     vlans = set()
     channels = []
 
@@ -82,10 +137,10 @@ def do_update(funcs, iface, etcdir):
 
     if not found_host:
         print >>sys.stderr, 'Error: hardware address %s not found in SIE hosts file' % hwaddr
-        sys.exit(1)
+        raise UpdateFailed
 
     found_site = False
-    sites = http_fetch_contents(URL_SITES)
+    sites = http_fetch_contents(URL_SITES, cache_dir)
     try:
         for line in sites.strip().split('\n'):
             s = line.split()
@@ -108,12 +163,12 @@ def do_update(funcs, iface, etcdir):
 
     if not found_site:
         print >>sys.stderr, 'Error: unknown site %s in SIE hosts file' % site
-        sys.exit(1)
+        raise Updatefailed
 
     funcs['set_link_up'](iface)
     
     try:
-        for line in http_fetch_contents(URL_CHANNELS).split():
+        for line in http_fetch_contents(URL_CHANNELS, cache_dir).split():
             line = int(line)
             channels.append(line)
     except:
@@ -136,9 +191,9 @@ def do_update(funcs, iface, etcdir):
     for vlan in rm_vlans:
         funcs['remove_vlan'](iface, vlan)
 
-    update_file(os.path.join(etcdir, FNAME_CHALIAS), URL_CHALIAS % site)
-    update_file(os.path.join(etcdir, FNAME_GRALIAS), URL_GRALIAS)
-    update_file(os.path.join(etcdir, FNAME_OPALIAS), URL_OPALIAS)
+    update_file(os.path.join(etcdir, FNAME_CHALIAS), URL_CHALIAS % site, cache_dir)
+    update_file(os.path.join(etcdir, FNAME_GRALIAS), URL_GRALIAS, cache_dir)
+    update_file(os.path.join(etcdir, FNAME_OPALIAS), URL_OPALIAS, cache_dir)
 
 def _linux_get_hw_address(iface):
     try:
@@ -147,7 +202,7 @@ def _linux_get_hw_address(iface):
         return hwaddr
     except:
         print >>sys.stderr, 'Error: unable to determine hardware address for interface %s' % iface
-        sys.exit(1)
+        raise UpdateFailed
 
 def _freebsd_get_hw_address(iface):
     try:
@@ -156,7 +211,7 @@ def _freebsd_get_hw_address(iface):
         return hwaddr
     except:
         print >>sys.stderr, 'Error: unable to determine hardware address for interface %s' % iface
-        sys.exit(1)
+        raise UpdateFailed
 
 def _linux_get_vlans(iface):
     vlans = set()
@@ -175,7 +230,7 @@ def _freebsd_get_vlans(iface):
                 vlans.add(int(s))
     except:
         print >>sys.stderr, 'Error: unable to enumerate VLAN IDs for interface %s' % iface
-        sys.exit(1)
+        raise UpdateFailed
     return vlans
 
 def _linux_ip_addr_add(ip, iface, netmask=24):
@@ -189,7 +244,7 @@ def _linux_set_link_up(iface):
     rc, stdout, stderr = run_cmd('ip link show %s' % iface, failok=True)
     if rc != 0:
         print >>sys.stderr, 'Error: unable to bring up SIE network interface %s' % iface
-        sys.exit(1)
+        raise UpdateFailed
     if len(stdout) > 0 and not ('mtu 9000' in stdout and 'state UP' in stdout):
         run_cmd('ip link set up %s mtu 9000' % iface)
 
@@ -197,7 +252,7 @@ def _freebsd_set_link_up(iface):
     rc, stdout, stderr = run_cmd('ifconfig %s' % iface, failok=True)
     if rc != 0:
         print >>sys.stderr, 'Error: unable to bring up SIE network interface %s' % iface
-        sys.exit(1)
+        raise UpdateFailed
 
     if len(stdout) > 0 and not ('mtu 9000' in stdout and 'UP' in stdout):
         run_cmd('ifconfig %s mtu 9000 up' % iface)
@@ -288,6 +343,12 @@ def main():
         help='system configuration directory')
     parser.add_option('-v', '--verbose', dest='verbose', default=VERBOSE,
         action='store_true', help='verbose mode')
+    parser.add_option('-d', '--daemon', dest='daemon', action='store_true',
+        help='run as daemon')
+    parser.add_option('-b', '--background', dest='background',
+        action='store_true', help='run in background and print pid to stdout')
+    parser.add_option('-t', '--poll-time', dest='poll_time', default=3600,
+        type=float, help='poll time for daemon')
     
     opt, arg = parser.parse_args()
 
@@ -304,12 +365,34 @@ def main():
 
     kernel = os.uname()[0]
     if kernel == 'Linux':
-        do_update(linux_net_funcs, opt.interface, opt.etcdir)
+        net_funcs = linux_net_funcs
     elif kernel == 'FreeBSD':
-        do_update(freebsd_net_funcs, opt.interface, opt.etcdir)
+        net_funcs = freebsd_net_funcs
     else:
         print >>sys.stderr, 'Error: unsupported system: %s' % kernel
         sys.exit(1)
+
+    if opt.background:
+        pid = os.fork()
+        if pid:
+            print pid
+            sys.exit(0)
+
+    if not opt.daemon:
+        try:
+            do_update(net_funcs, opt.interface, opt.etcdir)
+        except UpdateFailed, e:
+            sys.exit(1)
+    else:
+        while True:
+            try:
+                do_update(net_funcs, opt.interface, opt.etcdir)
+            except UpdateFailed, e:
+                pass
+            except:
+                print >>sys.stderr, "Unhandled exception:"
+                sys.excepthook(*sys.exc_info())
+            time.sleep(random.gauss(opt.poll_time, opt.poll_time/10))
 
 if __name__ == '__main__':
     main()
