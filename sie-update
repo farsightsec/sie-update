@@ -63,7 +63,7 @@ def cache_file_for_url(url, cache_dir):
     return os.path.join(cache_dir,
             os.path.basename(urlparse.urlparse(url).path))
 
-def cache_fetch_contents(url, cache_dir, max_age=0):
+def cache_fetch_contents(url, cache_dir, max_age=604800):
     cache_file = cache_file_for_url(url, cache_dir)
 
     if not os.path.isfile(cache_file):
