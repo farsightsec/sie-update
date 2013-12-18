@@ -76,21 +76,29 @@ def cache_put_contents(url, data, cache_dir):
         os.rename(f.name, cache_file)
         f.delete = False
 
-def http_fetch_contents(url):
+def http_fetch_contents(url, cache_dir=None):
     if VERBOSE:
         print 'Fetching %s...' % url
     try:
         data = urllib2.urlopen(url).read()
+        if cache_dir:
+            cache_put_contents(url, data, cache_dir)
         return data
     except:
-        print >>sys.stderr, 'Error: HTTP fetch failed for URL %s' % url
+        print >>sys.stderr, 'Error: HTTP fetch failed for URL %s.' % url
+        if cache_dir:
+            try:
+                print >>sys.stderr, 'Failing over to cache %s.' % cache_dir
+                return cache_fetch_contents(url, cache_dir)
+            except CacheMiss:
+                print >>sys.stderr, 'Error: No cache for URL %s' % url
         sys.exit(1)
 
-def update_file(fname, url):
+def update_file(fname, url, cache_dir=None):
     old_contents = None
     if os.path.isfile(fname):
         old_contents = open(fname).read()
-    new_contents = http_fetch_contents(url)
+    new_contents = http_fetch_contents(url, cache_dir)
     if old_contents != new_contents:
         open(fname, 'w').write(new_contents)
         print 'Updated %s from %s.' % (fname, url)
