@@ -355,12 +355,14 @@ def main():
 
     kernel = os.uname()[0]
     if kernel == 'Linux':
-        do_update(linux_net_funcs, opt.interface, opt.etcdir)
+        net_funcs = linux_net_funcs
     elif kernel == 'FreeBSD':
-        do_update(freebsd_net_funcs, opt.interface, opt.etcdir)
+        net_funcs = freebsd_net_funcs
     else:
         print >>sys.stderr, 'Error: unsupported system: %s' % kernel
         sys.exit(1)
+
+    do_update(net_funcs, opt.interface, opt.etcdir)
 
 if __name__ == '__main__':
     main()
