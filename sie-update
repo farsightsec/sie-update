@@ -7,7 +7,7 @@ import os
 import re
 import sys
 import urllib2
-import uuid
+import urlparse
 import tempfile
 
 URL_BASE = 'http://update.sie-network.net:51080/sie-update/'
@@ -59,7 +59,8 @@ def get_cache_dir(base_dir, create=True):
     return cache_dir
 
 def cache_file_for_url(url, cache_dir):
-    return os.path.join(cache_dir, str(uuid.uuid5(uuid.NAMESPACE_URL, url)))
+    return os.path.join(cache_dir,
+            os.path.basename(urlparse.urlparse(url).path))
 
 def cache_fetch_contents(url, cache_dir):
     cache_file = cache_file_for_url(url, cache_dir)
