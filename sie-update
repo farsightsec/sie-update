@@ -389,6 +389,9 @@ def main():
                 do_update(net_funcs, opt.interface, opt.etcdir)
             except UpdateFailed, e:
                 pass
+            except:
+                print >>sys.stderr, "Unhandled exception:"
+                sys.excepthook(*sys.exc_info())
             time.sleep(random.gauss(opt.poll_time, opt.poll_time/10))
 
 if __name__ == '__main__':
