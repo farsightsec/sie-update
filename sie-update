@@ -30,6 +30,9 @@ VERBOSE = False
 class CommandFailed(Exception):
     pass
 
+class UpdateFailed(Exception):
+    pass
+
 class CacheMiss(Exception):
     pass
 
@@ -101,7 +104,7 @@ def http_fetch_contents(url, cache_dir=None):
                 return cache_fetch_contents(url, cache_dir)
             except CacheMiss:
                 print >>sys.stderr, 'Error: No cache for URL %s' % url
-        sys.exit(1)
+        raise UpdateFailed
 
 def update_file(fname, url, cache_dir=None):
     old_contents = None
@@ -134,7 +137,7 @@ def do_update(funcs, iface, etcdir):
 
     if not found_host:
         print >>sys.stderr, 'Error: hardware address %s not found in SIE hosts file' % hwaddr
-        sys.exit(1)
+        raise UpdateFailed
 
     found_site = False
     sites = http_fetch_contents(URL_SITES, cache_dir)
@@ -160,7 +163,7 @@ def do_update(funcs, iface, etcdir):
 
     if not found_site:
         print >>sys.stderr, 'Error: unknown site %s in SIE hosts file' % site
-        sys.exit(1)
+        raise Updatefailed
 
     funcs['set_link_up'](iface)
     
@@ -199,7 +202,7 @@ def _linux_get_hw_address(iface):
         return hwaddr
     except:
         print >>sys.stderr, 'Error: unable to determine hardware address for interface %s' % iface
-        sys.exit(1)
+        raise UpdateFailed
 
 def _freebsd_get_hw_address(iface):
     try:
@@ -208,7 +211,7 @@ def _freebsd_get_hw_address(iface):
         return hwaddr
     except:
         print >>sys.stderr, 'Error: unable to determine hardware address for interface %s' % iface
-        sys.exit(1)
+        raise UpdateFailed
 
 def _linux_get_vlans(iface):
     vlans = set()
@@ -227,7 +230,7 @@ def _freebsd_get_vlans(iface):
                 vlans.add(int(s))
     except:
         print >>sys.stderr, 'Error: unable to enumerate VLAN IDs for interface %s' % iface
-        sys.exit(1)
+        raise UpdateFailed
     return vlans
 
 def _linux_ip_addr_add(ip, iface, netmask=24):
@@ -241,7 +244,7 @@ def _linux_set_link_up(iface):
     rc, stdout, stderr = run_cmd('ip link show %s' % iface, failok=True)
     if rc != 0:
         print >>sys.stderr, 'Error: unable to bring up SIE network interface %s' % iface
-        sys.exit(1)
+        raise UpdateFailed
     if len(stdout) > 0 and not ('mtu 9000' in stdout and 'state UP' in stdout):
         run_cmd('ip link set up %s mtu 9000' % iface)
 
@@ -249,7 +252,7 @@ def _freebsd_set_link_up(iface):
     rc, stdout, stderr = run_cmd('ifconfig %s' % iface, failok=True)
     if rc != 0:
         print >>sys.stderr, 'Error: unable to bring up SIE network interface %s' % iface
-        sys.exit(1)
+        raise UpdateFailed
 
     if len(stdout) > 0 and not ('mtu 9000' in stdout and 'UP' in stdout):
         run_cmd('ifconfig %s mtu 9000 up' % iface)
@@ -376,10 +379,16 @@ def main():
             sys.exit(0)
 
     if not opt.daemon:
-        do_update(net_funcs, opt.interface, opt.etcdir)
+        try:
+            do_update(net_funcs, opt.interface, opt.etcdir)
+        except UpdateFailed, e:
+            sys.exit(1)
     else:
         while True:
-            do_update(net_funcs, opt.interface, opt.etcdir)
+            try:
+                do_update(net_funcs, opt.interface, opt.etcdir)
+            except UpdateFailed, e:
+                pass
             time.sleep(random.gauss(opt.poll_time, opt.poll_time/10))
 
 if __name__ == '__main__':
