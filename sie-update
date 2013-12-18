@@ -104,8 +104,9 @@ def update_file(fname, url, cache_dir=None):
         print 'Updated %s from %s.' % (fname, url)
 
 def do_update(funcs, iface, etcdir):
+    cache_dir = get_cache_dir(etcdir, create=True)
     hwaddr = funcs['get_hw_address'](iface)
-    hosts = http_fetch_contents(URL_HOSTS)
+    hosts = http_fetch_contents(URL_HOSTS, cache_dir)
     vlans = set()
     channels = []
 
@@ -127,7 +128,7 @@ def do_update(funcs, iface, etcdir):
         sys.exit(1)
 
     found_site = False
-    sites = http_fetch_contents(URL_SITES)
+    sites = http_fetch_contents(URL_SITES, cache_dir)
     try:
         for line in sites.strip().split('\n'):
             s = line.split()
@@ -155,7 +156,7 @@ def do_update(funcs, iface, etcdir):
     funcs['set_link_up'](iface)
     
     try:
-        for line in http_fetch_contents(URL_CHANNELS).split():
+        for line in http_fetch_contents(URL_CHANNELS, cache_dir).split():
             line = int(line)
             channels.append(line)
     except:
@@ -178,9 +179,9 @@ def do_update(funcs, iface, etcdir):
     for vlan in rm_vlans:
         funcs['remove_vlan'](iface, vlan)
 
-    update_file(os.path.join(etcdir, FNAME_CHALIAS), URL_CHALIAS % site)
-    update_file(os.path.join(etcdir, FNAME_GRALIAS), URL_GRALIAS)
-    update_file(os.path.join(etcdir, FNAME_OPALIAS), URL_OPALIAS)
+    update_file(os.path.join(etcdir, FNAME_CHALIAS), URL_CHALIAS % site, cache_dir)
+    update_file(os.path.join(etcdir, FNAME_GRALIAS), URL_GRALIAS, cache_dir)
+    update_file(os.path.join(etcdir, FNAME_OPALIAS), URL_OPALIAS, cache_dir)
 
 def _linux_get_hw_address(iface):
     try:
