@@ -4,12 +4,13 @@ from optparse import OptionParser
 from subprocess import Popen, PIPE
 import glob
 import os
+import random
 import re
 import sys
-import urllib2
-import urlparse
 import tempfile
 import time
+import urllib2
+import urlparse
 
 URL_BASE = 'http://update.sie-network.net:51080/sie-update/'
 URL_HOSTS = URL_BASE + 'hosts.txt'
@@ -339,6 +340,12 @@ def main():
         help='system configuration directory')
     parser.add_option('-v', '--verbose', dest='verbose', default=VERBOSE,
         action='store_true', help='verbose mode')
+    parser.add_option('-d', '--daemon', dest='daemon', action='store_true',
+        help='run as daemon')
+    parser.add_option('-b', '--background', dest='background',
+        action='store_true', help='run in background and print pid to stdout')
+    parser.add_option('-t', '--poll-time', dest='poll_time', default=3600,
+        type=float, help='poll time for daemon')
     
     opt, arg = parser.parse_args()
 
@@ -362,7 +369,18 @@ def main():
         print >>sys.stderr, 'Error: unsupported system: %s' % kernel
         sys.exit(1)
 
-    do_update(net_funcs, opt.interface, opt.etcdir)
+    if opt.background:
+        pid = os.fork()
+        if pid:
+            print pid
+            sys.exit(0)
+
+    if not opt.daemon:
+        do_update(net_funcs, opt.interface, opt.etcdir)
+    else:
+        while True:
+            do_update(net_funcs, opt.interface, opt.etcdir)
+            time.sleep(random.gauss(opt.poll_time, opt.poll_time/10))
 
 if __name__ == '__main__':
     main()
