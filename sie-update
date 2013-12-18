@@ -7,6 +7,8 @@ import os
 import re
 import sys
 import urllib2
+import uuid
+import tempfile
 
 URL_BASE = 'http://update.sie-network.net:51080/sie-update/'
 URL_HOSTS = URL_BASE + 'hosts.txt'
@@ -26,6 +28,9 @@ VERBOSE = False
 class CommandFailed(Exception):
     pass
 
+class CacheMiss(Exception):
+    pass
+
 def run_cmd(cmd, failok=False):
     if VERBOSE:
         print cmd
@@ -41,6 +46,35 @@ def run_cmd(cmd, failok=False):
     if not failok and rc != 0:
         raise CommandFailed
     return (rc, stdout, stderr)
+
+def get_cache_dir(base_dir, create=True):
+    cache_dir = os.path.join(base_dir, 'sie-update')
+    if os.path.exists(cache_dir) and not os.path.isdir(cache_dir):
+        raise OSError(17, 
+                "Cache exists and is not a directory '%s'" % cache_dir)
+
+    if create and not os.path.exists(cache_dir):
+        os.mkdir(cache_dir)
+
+    return cache_dir
+
+def cache_file_for_url(url, cache_dir):
+    return os.path.join(cache_dir, str(uuid.uuid5(uuid.NAMESPACE_URL, url)))
+
+def cache_fetch_contents(url, cache_dir):
+    cache_file = cache_file_for_url(url, cache_dir)
+    if not os.path.isfile(cache_file):
+        raise CacheMiss
+    with open(cache_file) as f:
+        return f.read()
+
+def cache_put_contents(url, data, cache_dir):
+    cache_file = cache_file_for_url(url, cache_dir)
+    with tempfile.NamedTemporaryFile(dir=cache_dir, prefix='cache') as f:
+        f.write(data)
+        f.file.close()
+        os.rename(f.name, cache_file)
+        f.delete = False
 
 def http_fetch_contents(url):
     if VERBOSE:
