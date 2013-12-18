@@ -80,6 +80,7 @@ def cache_put_contents(url, data, cache_dir):
     with tempfile.NamedTemporaryFile(dir=cache_dir, prefix='cache') as f:
         f.write(data)
         f.file.close()
+        os.chmod(f.name, 0644)
         os.rename(f.name, cache_file)
         f.delete = False
 
