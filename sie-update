@@ -9,6 +9,7 @@ import sys
 import urllib2
 import urlparse
 import tempfile
+import time
 
 URL_BASE = 'http://update.sie-network.net:51080/sie-update/'
 URL_HOSTS = URL_BASE + 'hosts.txt'
@@ -62,10 +63,15 @@ def cache_file_for_url(url, cache_dir):
     return os.path.join(cache_dir,
             os.path.basename(urlparse.urlparse(url).path))
 
-def cache_fetch_contents(url, cache_dir):
+def cache_fetch_contents(url, cache_dir, max_age=0):
     cache_file = cache_file_for_url(url, cache_dir)
+
     if not os.path.isfile(cache_file):
-        raise CacheMiss
+        raise CacheMiss, "Cache file '%s' does not exist"
+
+    if max_age > 0 and time.time() - os.stat(cache_file).st_mtime > max_age:
+        raise CacheMiss, "Cache file '%s' has expired"
+
     with open(cache_file) as f:
         return f.read()
 
