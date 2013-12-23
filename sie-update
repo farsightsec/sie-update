@@ -375,7 +375,6 @@ def main():
     if opt.background:
         pid = os.fork()
         if pid:
-            print pid
             sys.exit(0)
 
     if not opt.daemon:
