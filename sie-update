@@ -352,8 +352,6 @@ def main():
         action='store_true', help='verbose mode')
     parser.add_option('-d', '--daemon', dest='daemon', action='store_true',
         help='run as daemon')
-    parser.add_option('-b', '--background', dest='background',
-        action='store_true', help='run in background and print pid to stdout')
     parser.add_option('-t', '--poll-time', dest='poll_time', default=3600,
         type=float, help='poll time for daemon')
     parser.add_option('-l', '--log-file', dest='log_file',
