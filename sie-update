@@ -72,6 +72,9 @@ def cache_file_for_url(url, cache_dir):
 def cache_fetch_contents(url, cache_dir, max_age=604800):
     cache_file = cache_file_for_url(url, cache_dir)
 
+    if VERBOSE:
+        print >>sys.stderr, 'fetching %s from cache file %s' % (url, cache_file)
+
     if not os.path.isfile(cache_file):
         raise CacheMiss, "Cache file '%s' does not exist"
 
@@ -83,6 +86,8 @@ def cache_fetch_contents(url, cache_dir, max_age=604800):
 
 def cache_put_contents(url, data, cache_dir):
     cache_file = cache_file_for_url(url, cache_dir)
+    if VERBOSE:
+        print >>sys.stderr, 'storing %s to cache file %s' % (url, cache_file)
     with tempfile.NamedTemporaryFile(dir=cache_dir, prefix='cache') as f:
         f.write(data)
         f.file.close()
