@@ -393,8 +393,7 @@ def main():
             import daemon
             from daemon.pidlockfile import PIDLockFile
         except ImportError:
-            print >>sys.stderr,
-                    "Daemon mode requires the 'daemon' python module from:"
+            print >>sys.stderr, "Daemon mode requires the 'daemon' python module from:"
             print >>sys.stderr, "https://pypi.python.org/pypi/python-daemon"
             sys.exit(1)
 
