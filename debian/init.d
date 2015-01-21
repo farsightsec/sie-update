@@ -19,7 +19,11 @@ if [ -f /etc/default/$NAME ]; then
 fi
 
 test -x $DAEMON || exit 0
-test ! -z "$INTERFACE" || exit 0
+
+if [ -z "$INTERFACE" ]; then
+	echo "$0: INTERFACE variable not set in /etc/default/$NAME"
+	exit 0
+fi
 
 . /lib/lsb/init-functions
 
