@@ -1,0 +1,13 @@
+Source: sie-update
+Section: utils
+Priority: extra
+Maintainer: Farsight Security, Inc. <software@farsightsecurity.com>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.5
+
+Package: sie-update
+Section: utils
+Architecture: all
+Depends: ${misc:Depends}, python2.7, python-daemon
+Description: SIE Interface Configurator
+ Configures vlans for a SIE-attached port.
