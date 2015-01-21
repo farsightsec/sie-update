@@ -1,0 +1,5 @@
+sie-update (0.2.0-1) debian-fsi; urgency=medium
+
+  * Initial release. (Closes: #XXXXXX)
+
+ -- Henry Stern <stern@fsi.io>  Wed, 21 Jan 2015 10:52:48 -0400
