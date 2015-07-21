@@ -17,6 +17,8 @@ import json
 
 URL_BASE = 'http://update.sie-network.net:51080/sie-update/v2/'
 
+SIE_UPDATE_VERSION = '0.3.0'
+
 FNAME_CHALIAS = 'nmsgtool.chalias'
 FNAME_GRALIAS = 'nmsg.gralias'
 FNAME_OPALIAS = 'nmsg.opalias'
@@ -93,7 +95,9 @@ def http_fetch_contents(url, cache_dir=None):
     if VERBOSE:
         print 'Fetching %s...' % url
     try:
-        data = urllib2.urlopen(url).read()
+        req = urllib2.Request(url)
+        req.add_header('User-Agent', 'sie-update/' + SIE_UPDATE_VERSION)
+        data = urllib2.urlopen(req).read()
         if cache_dir:
             cache_put_contents(url, data, cache_dir)
         return data
