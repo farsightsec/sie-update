@@ -13,15 +13,9 @@ import tempfile
 import time
 import urllib2
 import urlparse
+import json
 
-URL_BASE = 'http://update.sie-network.net:51080/sie-update/'
-URL_HOSTS = URL_BASE + 'hosts.txt'
-URL_SITES = URL_BASE + 'sites.txt'
-URL_CHANNELS = URL_BASE + 'channels.txt'
-
-URL_CHALIAS = URL_BASE + 'chalias.%s.txt'
-URL_GRALIAS = URL_BASE + 'gralias.txt'
-URL_OPALIAS = URL_BASE + 'opalias.txt'
+URL_BASE = 'http://update.sie-network.net:51080/sie-update/v2/'
 
 FNAME_CHALIAS = 'nmsgtool.chalias'
 FNAME_GRALIAS = 'nmsg.gralias'
@@ -125,82 +119,36 @@ def update_file(fname, url, cache_dir=None):
 def do_update(funcs, iface, etcdir):
     cache_dir = get_cache_dir(etcdir, create=True)
     hwaddr = funcs['get_hw_address'](iface)
-    hosts = http_fetch_contents(URL_HOSTS, cache_dir)
-    vlans = set()
-    channels = []
 
-    found_host = False
     try:
-        for line in hosts.strip().split('\n'):
-            s = line.split()
-            if hwaddr == s[0]:
-                found_host = True
-                site = s[1]
-                x = s[2]
-                break
+        conf_json = http_fetch_contents(URL_BASE + hwaddr, cache_dir)
     except:
-        print >>sys.stderr, 'Error: failed to parse SIE hosts file\n'
-        raise
-
-    if not found_host:
-        print >>sys.stderr, 'Error: hardware address %s not found in SIE hosts file' % hwaddr
+        print >>sys.stderr, 'Error: no SIE configuration found for hardware address %s' % hwaddr
         raise UpdateFailed
-
-    found_site = False
-    sites = http_fetch_contents(URL_SITES, cache_dir)
-    try:
-        for line in sites.strip().split('\n'):
-            s = line.split()
-            s_site = s[0]
-            s_net = s[1]
-            s_vpnnet = s[2]
-            if len(s) >= 4:
-                s_vpnmask = int(s[3])
-            else:
-                s_vpnmask = 24
-            if site == s_site:
-                net = s_net
-                vpnnet = s_vpnnet
-                vpnmask = s_vpnmask
-                found_site = True
-                break
-    except:
-        print >>sys.stderr, 'Error: failed to parse SIE sites file\n'
-        raise
-
-    if not found_site:
-        print >>sys.stderr, 'Error: unknown site %s in SIE hosts file' % site
-        raise Updatefailed
 
     funcs['set_link_up'](iface)
     
     try:
-        for line in http_fetch_contents(URL_CHANNELS, cache_dir).split():
-            line = int(line)
-            channels.append(line)
+        conf = json.loads(conf_json)
     except:
-        print >>sys.stderr, 'Error: failed to parse SIE channels file\n'
+        print >>sys.stderr, 'Error: failed to parse SIE configuration\n'
         raise
 
-    for ch in channels:
-        vlan = ch
-        if vlan == 7:
-            ip = '%s.%s' % (vpnnet, x)
-            funcs['set_vlan_up'](iface, vlan, ip, vpnmask)
-            funcs['set_vlan_mtu'](iface, vlan, 1280)
-        else:
-            ip = '%s.%s.%s' % (net, ch, x)
-            funcs['set_vlan_up'](iface, vlan, ip)
-        vlans.add(vlan)
-
+    vlans = set([c['vlan'] for c in conf['ifconfig']])
     cur_vlans = funcs['get_vlans'](iface)
-    rm_vlans = cur_vlans.difference(vlans)
-    for vlan in rm_vlans:
+    for vlan in cur_vlans.difference(vlans):
         funcs['remove_vlan'](iface, vlan)
+    
+    for c in conf['ifconfig']:
+        funcs['set_vlan_up'](iface, c['vlan'], c['ip'])
 
-    update_file(os.path.join(etcdir, FNAME_CHALIAS), URL_CHALIAS % site, cache_dir)
-    update_file(os.path.join(etcdir, FNAME_GRALIAS), URL_GRALIAS, cache_dir)
-    update_file(os.path.join(etcdir, FNAME_OPALIAS), URL_OPALIAS, cache_dir)
+    url_chalias = URL_BASE + conf['files']['chalias']
+    url_gralias = URL_BASE + conf['files']['gralias']
+    url_opalias = URL_BASE + conf['files']['opalias']
+
+    update_file(os.path.join(etcdir, FNAME_CHALIAS), url_chalias, cache_dir)
+    update_file(os.path.join(etcdir, FNAME_GRALIAS), url_gralias, cache_dir)
+    update_file(os.path.join(etcdir, FNAME_OPALIAS), url_opalias, cache_dir)
 
 def _linux_get_hw_address(iface):
     try:
