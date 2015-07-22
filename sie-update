@@ -124,8 +124,11 @@ def do_update(funcs, iface, etcdir):
     cache_dir = get_cache_dir(etcdir, create=True)
     hwaddr = funcs['get_hw_address'](iface)
 
+    guest_base = urlparse.urljoin(URL_BASE, "guest/")
+    guest_uri = urlparse.urljoin(guest_base, hwaddr.replace(':','-') + ".json")
+
     try:
-        conf_json = http_fetch_contents(URL_BASE + hwaddr, cache_dir)
+        conf_json = http_fetch_contents(guest_uri, cache_dir)
     except:
         print >>sys.stderr, 'Error: no SIE configuration found for hardware address %s' % hwaddr
         raise UpdateFailed
@@ -146,9 +149,9 @@ def do_update(funcs, iface, etcdir):
     for c in conf['ifconfig']:
         funcs['set_vlan_up'](iface, c['vlan'], c['ip'])
 
-    url_chalias = URL_BASE + conf['files']['chalias']
-    url_gralias = URL_BASE + conf['files']['gralias']
-    url_opalias = URL_BASE + conf['files']['opalias']
+    url_chalias = urlparse.urljoin(guest_base, conf['files']['chalias'])
+    url_gralias = urlparse.urljoin(guest_base, conf['files']['gralias'])
+    url_opalias = urlparse.urljoin(guest_base, conf['files']['opalias'])
 
     update_file(os.path.join(etcdir, FNAME_CHALIAS), url_chalias, cache_dir)
     update_file(os.path.join(etcdir, FNAME_GRALIAS), url_gralias, cache_dir)
