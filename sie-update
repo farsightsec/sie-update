@@ -232,7 +232,7 @@ def _linux_set_vlan_up(iface, vlan, ip, netmask=24):
     if rc != 0:
         run_cmd('ip link add link %s name %s type vlan id %s' % (iface, vlan_iface, vlan))
         _linux_ip_addr_add(ip, vlan_iface)
-        print 'Added new VLAN %s.' % vlan
+        print 'Added new VLAN %s to %s.' % (vlan, iface)
     else:
         current_ips = set(re.findall('inet ([0-9./]+)', stdout))
         ipnm = '%s/%s' % (ip, netmask)
@@ -255,7 +255,7 @@ def _freebsd_set_vlan_up(iface, vlan, ip, netmask=24):
     if rc != 0:
         run_cmd('ifconfig %s create vlan %s vlandev %s' % (vlan_iface, vlan, iface))
         _freebsd_ip_addr_add(ip, vlan_iface)
-        print 'Added new VLAN %s.' % vlan
+        print 'Added new VLAN %s to %s.' % (vlan, iface)
     else:
         current_ips = set(re.findall('inet ([0-9.]+)', stdout))
         rm_ips = set(current_ips)
@@ -269,11 +269,11 @@ def _freebsd_set_vlan_up(iface, vlan, ip, netmask=24):
 
 def _linux_remove_vlan(iface, vlan):
     run_cmd('ip link del dev %s.%s' % (iface, vlan))
-    print 'Removed old VLAN %s.' % vlan
+    print 'Removed old VLAN %s from %s.' % (vlan, iface)
 
 def _freebsd_remove_vlan(iface, vlan):
     run_cmd('ifconfig vlan%s destroy' % vlan)
-    print 'Removed old VLAN %s.' % vlan
+    print 'Removed old VLAN %s from %s.' % (vlan, iface)
 
 def main():
     global URL_BASE
@@ -300,7 +300,8 @@ def main():
     }
 
     parser = OptionParser('Usage: %prog -i INTERFACE [OPTION]...')
-    parser.add_option('-i', '--interface', dest='interface', help='SIE network interface')
+    parser.add_option('-i', '--interface', dest='interface', action='append',
+        help='SIE network interface')
     parser.add_option('-e', '--etcdir', dest='etcdir', default='/etc',
         help='system configuration directory')
     parser.add_option('-v', '--verbose', dest='verbose', default=VERBOSE,
@@ -340,7 +341,8 @@ def main():
 
     if not opt.daemon:
         try:
-            do_update(net_funcs, opt.interface, opt.etcdir)
+            for iface in opt.interface:
+                do_update(net_funcs, iface, opt.etcdir)
         except UpdateFailed, e:
             sys.exit(1)
     else:
@@ -384,7 +386,8 @@ def main():
 
             while True:
                 try:
-                    do_update(net_funcs, opt.interface, opt.etcdir)
+                    for iface in opt.interface:
+                        do_update(net_funcs, iface, opt.etcdir)
                 except UpdateFailed, e:
                     pass
                 except:
