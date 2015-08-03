@@ -27,10 +27,17 @@ fi
 
 . /lib/lsb/init-functions
 
-case "$1" in
+cmd=$1
+
+set -- "$INTERFACE"
+for ifn in $*; do
+	ifopts="$ifopts -i '$ifn'"
+done
+
+case "$cmd" in
   start)
 	log_begin_msg "Starting $DESC:" "$NAME"
-	if start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --name python --startas "$DAEMON" -- -i "$INTERFACE" -d; then
+	if start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --name python --startas "$DAEMON" -- $ifopts -d; then
 	    log_end_msg 0
 	else
 	    log_end_msg 1
