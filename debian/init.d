@@ -31,7 +31,7 @@ cmd=$1
 
 set -- "$INTERFACE"
 for ifn in $*; do
-	ifopts="$ifopts -i '$ifn'"
+	ifopts="$ifopts -i $ifn"
 done
 
 case "$cmd" in
