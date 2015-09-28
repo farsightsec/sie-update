@@ -231,7 +231,7 @@ def _linux_set_vlan_up(iface, vlan, ip, netmask=24):
     rc, stdout, stderr = run_cmd('ip addr show %s' % vlan_iface, failok=True)
     if rc != 0:
         run_cmd('ip link add link %s name %s type vlan id %s' % (iface, vlan_iface, vlan))
-        run_cmd('sysctl -w net.ipv6.conf.%s/%s.disable_ipv6=1' % (iface, vlan))
+        run_cmd('sysctl -q -w net.ipv6.conf.%s/%s.disable_ipv6=1' % (iface, vlan))
         _linux_ip_addr_add(ip, vlan_iface)
         print 'Added new VLAN %s to %s.' % (vlan, iface)
     else:
