@@ -1,3 +1,13 @@
+sie-update (0.3.1-1) debian-fsi; urgency=low
+
+  [ Henry Stern ]
+  * [c90a95e7] Disable ipv6 on Linux interfaces when brought up.
+  * [f2ac3f9b] Make sysctl quiet
+
+  [ Chris Mikkelson ]
+
+ -- Chris Mikkelson <cmikk@fsi.io>  Tue, 06 Oct 2015 18:43:56 +0000
+
 sie-update (0.3.0-1) debian-fsi; urgency=medium
 
   [ Chris Mikkelson ]
