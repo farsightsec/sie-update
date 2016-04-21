@@ -120,7 +120,7 @@ def update_file(fname, url, cache_dir=None):
         open(fname, 'w').write(new_contents)
         print 'Updated %s from %s.' % (fname, url)
 
-def do_update(funcs, iface, etcdir):
+def do_update(funcs, iface, etcdir, preserve_vlans=[]):
     cache_dir = get_cache_dir(etcdir, create=True)
     hwaddr = funcs['get_hw_address'](iface)
 
@@ -143,10 +143,12 @@ def do_update(funcs, iface, etcdir):
 
     vlans = set([c['vlan'] for c in conf['ifconfig']])
     cur_vlans = funcs['get_vlans'](iface)
-    for vlan in cur_vlans.difference(vlans):
+    for vlan in cur_vlans.difference(vlans).difference(preserve_vlans):
         funcs['remove_vlan'](iface, vlan)
     
     for c in conf['ifconfig']:
+        if c['vlan'] in preserve_vlans:
+            continue
         funcs['set_vlan_up'](iface, c['vlan'], c['ip'])
 
     url_chalias = urlparse.urljoin(guest_base, conf['files']['chalias'])
@@ -317,6 +319,9 @@ def main():
     parser.add_argument('-p', '--pid-file', dest='pid_file',
             default='/var/run/sie-update.pid',
             help='pid file for daemon mode')
+    parser.add_argument('-P', '--preserve', dest='preserve',
+            metavar='[int or int-int]',
+            nargs='*', help='Preserve vlans')
     
     args = parser.parse_args()
 
@@ -337,10 +342,22 @@ def main():
         print >>sys.stderr, 'Error: unsupported system: %s' % kernel
         sys.exit(1)
 
+    preserve_vlans = set()
+    if args.preserve:
+        for vlan_spec in args.preserve:
+            try:
+                preserve_vlans.add(int(vlan_spec))
+            except ValueError:
+                low_str,_,high_str = vlan_spec.partition('-')
+                try:
+                    preserve_vlans.update(range(int(low_str), int(high_str)+1))
+                except ValueError:
+                    parser.error('Invalid vlan_spec: {!r}'.format(vlan_spec))
+
     if not args.daemon:
         try:
             for iface in args.interface:
-                do_update(net_funcs, iface, args.etcdir)
+                do_update(net_funcs, iface, args.etcdir, preserve_vlans=preserve_vlans)
         except UpdateFailed, e:
             sys.exit(1)
     else:
@@ -385,7 +402,7 @@ def main():
             while True:
                 try:
                     for iface in args.interface:
-                        do_update(net_funcs, iface, args.etcdir)
+                        do_update(net_funcs, iface, args.etcdir, preserve_vlans=preserve_vlans)
                 except UpdateFailed, e:
                     pass
                 except:
