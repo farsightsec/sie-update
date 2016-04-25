@@ -1,3 +1,9 @@
+sie-update (0.4.0-2) debian-fsi; urgency=medium
+
+  * [0bf40d4f] default,init.d: add OPTIONS to defaults and invocation
+
+ -- Henry Stern <stern@fsi.io>  Mon, 25 Apr 2016 12:39:19 -0300
+
 sie-update (0.4.0-1) debian-fsi; urgency=medium
 
   [ Henry Stern ]
