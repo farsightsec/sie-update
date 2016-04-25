@@ -37,7 +37,7 @@ done
 case "$cmd" in
   start)
 	log_begin_msg "Starting $DESC:" "$NAME"
-	if start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --name python --startas "$DAEMON" -- $ifopts -d; then
+	if start-stop-daemon --start --quiet --oknodo --pidfile $PIDFILE --name python --startas "$DAEMON" -- $ifopts -d $OPTIONS; then
 	    log_end_msg 0
 	else
 	    log_end_msg 1
