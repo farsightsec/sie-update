@@ -363,11 +363,22 @@ def main():
     else:
         try:
             import daemon
-            from daemon.pidlockfile import PIDLockFile
         except ImportError:
             print >>sys.stderr, "Daemon mode requires the 'daemon' python module from:"
             print >>sys.stderr, "https://pypi.python.org/pypi/python-daemon"
             sys.exit(1)
+
+        try:
+            from lockfile.pidlockfile import PIDLockFile
+        except ImportError:
+            # lockfile is missing or a version predating the move
+            # of PIDLockFile from daemon to lockfile. If the latter,
+            # attempt to load PIDLockFile from daemon.
+            try:
+                from daemon.pidlockfile import PIDLockFile
+            except ImportError:
+                print >>sys.stderr, "Daemon mode requires the 'lockfile' python modlue from:"
+                print >>sys.stderr, "https://pypi.python.org/pypi/python-lockfile"
 
         args.pid_file = os.path.abspath(args.pid_file)
         args.log_file = os.path.abspath(args.log_file)
