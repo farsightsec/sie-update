@@ -1,3 +1,12 @@
+sie-update (0.4.1-1) debian-fsi; urgency=medium
+
+  * Update to reflect PIDLockFile's move from daemon library to lockfile
+    library. Note that lockfile is required by daemon, so this change
+    does not introduce new package dependencies. This will also work
+    with the old library.
+
+ -- Jeremy C. Reed <reed@fsi.io>  Fri, 06 Oct 2017 13:52:00 -0500
+
 sie-update (0.4.0-2) debian-fsi; urgency=medium
 
   * [0bf40d4f] default,init.d: add OPTIONS to defaults and invocation
