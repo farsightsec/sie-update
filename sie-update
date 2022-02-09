@@ -11,8 +11,8 @@ import re
 import sys
 import tempfile
 import time
-import urllib2
-import urlparse
+import urllib.request, urllib.error, urllib.parse
+import urllib.parse
 import json
 
 URL_BASE = 'http://update.sie-network.net:51080/sie-update/v2/'
@@ -36,7 +36,7 @@ class CacheMiss(Exception):
 
 def run_cmd(cmd, failok=False):
     if VERBOSE:
-        print cmd
+        print(cmd)
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
     stdout = p.stdout.read()
     stderr = p.stderr.read()
@@ -45,7 +45,7 @@ def run_cmd(cmd, failok=False):
         sys.stderr.write(stderr)
     rc = p.wait()
     if not failok and rc != 0:
-        print >>sys.stderr, 'command "%s" returned non-zero exit code %d' % (cmd, rc)
+        print('command "%s" returned non-zero exit code %d' % (cmd, rc), file=sys.stderr)
     if not failok and rc != 0:
         raise CommandFailed
     return (rc, stdout, stderr)
@@ -63,19 +63,19 @@ def get_cache_dir(base_dir, create=True):
 
 def cache_file_for_url(url, cache_dir):
     return os.path.join(cache_dir,
-            os.path.basename(urlparse.urlparse(url).path))
+            os.path.basename(urllib.parse.urlparse(url).path))
 
 def cache_fetch_contents(url, cache_dir, max_age=604800):
     cache_file = cache_file_for_url(url, cache_dir)
 
     if VERBOSE:
-        print >>sys.stderr, 'fetching %s from cache file %s' % (url, cache_file)
+        print('fetching %s from cache file %s' % (url, cache_file), file=sys.stderr)
 
     if not os.path.isfile(cache_file):
-        raise CacheMiss, "Cache file '%s' does not exist"
+        raise CacheMiss("Cache file '%s' does not exist")
 
     if max_age > 0 and time.time() - os.stat(cache_file).st_mtime > max_age:
-        raise CacheMiss, "Cache file '%s' has expired"
+        raise CacheMiss("Cache file '%s' has expired")
 
     with open(cache_file) as f:
         return f.read()
@@ -83,32 +83,32 @@ def cache_fetch_contents(url, cache_dir, max_age=604800):
 def cache_put_contents(url, data, cache_dir):
     cache_file = cache_file_for_url(url, cache_dir)
     if VERBOSE:
-        print >>sys.stderr, 'storing %s to cache file %s' % (url, cache_file)
+        print('storing %s to cache file %s' % (url, cache_file), file=sys.stderr)
     with tempfile.NamedTemporaryFile(dir=cache_dir, prefix='cache') as f:
         f.write(data)
         f.file.close()
-        os.chmod(f.name, 0644)
+        os.chmod(f.name, 0o644)
         os.rename(f.name, cache_file)
         f.delete = False
 
 def http_fetch_contents(url, cache_dir=None):
     if VERBOSE:
-        print 'Fetching %s...' % url
+        print('Fetching %s...' % url)
     try:
-        req = urllib2.Request(url)
+        req = urllib.request.Request(url)
         req.add_header('User-Agent', 'sie-update/' + SIE_UPDATE_VERSION)
-        data = urllib2.urlopen(req).read()
+        data = urllib.request.urlopen(req).read()
         if cache_dir:
             cache_put_contents(url, data, cache_dir)
         return data
     except:
-        print >>sys.stderr, 'Error: HTTP fetch failed for URL %s.' % url
+        print('Error: HTTP fetch failed for URL %s.' % url, file=sys.stderr)
         if cache_dir:
             try:
-                print >>sys.stderr, 'Failing over to cache %s.' % cache_dir
+                print('Failing over to cache %s.' % cache_dir, file=sys.stderr)
                 return cache_fetch_contents(url, cache_dir)
             except CacheMiss:
-                print >>sys.stderr, 'Error: No cache for URL %s' % url
+                print('Error: No cache for URL %s' % url, file=sys.stderr)
         raise UpdateFailed
 
 def update_file(fname, url, cache_dir=None):
@@ -118,19 +118,19 @@ def update_file(fname, url, cache_dir=None):
     new_contents = http_fetch_contents(url, cache_dir)
     if old_contents != new_contents:
         open(fname, 'w').write(new_contents)
-        print 'Updated %s from %s.' % (fname, url)
+        print('Updated %s from %s.' % (fname, url))
 
 def do_update(funcs, iface, etcdir, preserve_vlans=[]):
     cache_dir = get_cache_dir(etcdir, create=True)
     hwaddr = funcs['get_hw_address'](iface)
 
-    guest_base = urlparse.urljoin(URL_BASE, "guest/")
-    guest_uri = urlparse.urljoin(guest_base, hwaddr.replace(':','-') + ".json")
+    guest_base = urllib.parse.urljoin(URL_BASE, "guest/")
+    guest_uri = urllib.parse.urljoin(guest_base, hwaddr.replace(':','-') + ".json")
 
     try:
         conf_json = http_fetch_contents(guest_uri, cache_dir)
     except:
-        print >>sys.stderr, 'Error: no SIE configuration found for hardware address %s' % hwaddr
+        print('Error: no SIE configuration found for hardware address %s' % hwaddr, file=sys.stderr)
         raise UpdateFailed
 
     funcs['set_link_up'](iface)
@@ -138,7 +138,7 @@ def do_update(funcs, iface, etcdir, preserve_vlans=[]):
     try:
         conf = json.loads(conf_json)
     except:
-        print >>sys.stderr, 'Error: failed to parse SIE configuration\n'
+        print('Error: failed to parse SIE configuration\n', file=sys.stderr)
         raise
 
     vlans = set([c['vlan'] for c in conf['ifconfig']])
@@ -151,9 +151,9 @@ def do_update(funcs, iface, etcdir, preserve_vlans=[]):
             continue
         funcs['set_vlan_up'](iface, c['vlan'], c['ip'])
 
-    url_chalias = urlparse.urljoin(guest_base, conf['files']['chalias'])
-    url_gralias = urlparse.urljoin(guest_base, conf['files']['gralias'])
-    url_opalias = urlparse.urljoin(guest_base, conf['files']['opalias'])
+    url_chalias = urllib.parse.urljoin(guest_base, conf['files']['chalias'])
+    url_gralias = urllib.parse.urljoin(guest_base, conf['files']['gralias'])
+    url_opalias = urllib.parse.urljoin(guest_base, conf['files']['opalias'])
 
     update_file(os.path.join(etcdir, FNAME_CHALIAS), url_chalias, cache_dir)
     update_file(os.path.join(etcdir, FNAME_GRALIAS), url_gralias, cache_dir)
@@ -165,7 +165,7 @@ def _linux_get_hw_address(iface):
         hwaddr = re.findall('link/ether ([0-9a-f:]+)', stdout)[0]
         return hwaddr
     except:
-        print >>sys.stderr, 'Error: unable to determine hardware address for interface %s' % iface
+        print('Error: unable to determine hardware address for interface %s' % iface, file=sys.stderr)
         raise UpdateFailed
 
 def _freebsd_get_hw_address(iface):
@@ -174,7 +174,7 @@ def _freebsd_get_hw_address(iface):
         hwaddr = re.findall('ether ([0-9a-f:]+)', stdout)[0]
         return hwaddr
     except:
-        print >>sys.stderr, 'Error: unable to determine hardware address for interface %s' % iface
+        print('Error: unable to determine hardware address for interface %s' % iface, file=sys.stderr)
         raise UpdateFailed
 
 def _linux_get_vlans(iface):
@@ -193,7 +193,7 @@ def _freebsd_get_vlans(iface):
                 s = line.split(':', 1)[0].split('vlan', 1)[1]
                 vlans.add(int(s))
     except:
-        print >>sys.stderr, 'Error: unable to enumerate VLAN IDs for interface %s' % iface
+        print('Error: unable to enumerate VLAN IDs for interface %s' % iface, file=sys.stderr)
         raise UpdateFailed
     return vlans
 
@@ -207,7 +207,7 @@ def _freebsd_ip_addr_add(ip, iface, netmask=24):
 def _linux_set_link_up(iface):
     rc, stdout, stderr = run_cmd('ip link show %s' % iface, failok=True)
     if rc != 0:
-        print >>sys.stderr, 'Error: unable to bring up SIE network interface %s' % iface
+        print('Error: unable to bring up SIE network interface %s' % iface, file=sys.stderr)
         raise UpdateFailed
     if len(stdout) > 0 and not ('mtu 9000' in stdout and 'state UP' in stdout):
         run_cmd('ip link set up %s mtu 9000' % iface)
@@ -215,7 +215,7 @@ def _linux_set_link_up(iface):
 def _freebsd_set_link_up(iface):
     rc, stdout, stderr = run_cmd('ifconfig %s' % iface, failok=True)
     if rc != 0:
-        print >>sys.stderr, 'Error: unable to bring up SIE network interface %s' % iface
+        print('Error: unable to bring up SIE network interface %s' % iface, file=sys.stderr)
         raise UpdateFailed
 
     if len(stdout) > 0 and not ('mtu 9000' in stdout and 'UP' in stdout):
@@ -235,7 +235,7 @@ def _linux_set_vlan_up(iface, vlan, ip, netmask=24):
         run_cmd('ip link add link %s name %s type vlan id %s' % (iface, vlan_iface, vlan))
         run_cmd('sysctl -q -w net.ipv6.conf.%s/%s.disable_ipv6=1' % (iface, vlan))
         _linux_ip_addr_add(ip, vlan_iface)
-        print 'Added new VLAN %s to %s.' % (vlan, iface)
+        print('Added new VLAN %s to %s.' % (vlan, iface))
     else:
         current_ips = set(re.findall('inet ([0-9./]+)', stdout))
         ipnm = '%s/%s' % (ip, netmask)
@@ -244,7 +244,7 @@ def _linux_set_vlan_up(iface, vlan, ip, netmask=24):
             rm_ips.remove(ipnm)
             if rm_ips:
                 for x in rm_ips:
-                    print 'Removing obsolete IP address %s from interface %s' % (x, vlan_iface)
+                    print('Removing obsolete IP address %s from interface %s' % (x, vlan_iface))
                     run_cmd('ip addr del %s dev %s' % (x, vlan_iface))
         else:
             run_cmd('ip addr flush dev %s' % vlan_iface)
@@ -258,7 +258,7 @@ def _freebsd_set_vlan_up(iface, vlan, ip, netmask=24):
     if rc != 0:
         run_cmd('ifconfig %s create vlan %s vlandev %s' % (vlan_iface, vlan, iface))
         _freebsd_ip_addr_add(ip, vlan_iface)
-        print 'Added new VLAN %s to %s.' % (vlan, iface)
+        print('Added new VLAN %s to %s.' % (vlan, iface))
     else:
         current_ips = set(re.findall('inet ([0-9.]+)', stdout))
         rm_ips = set(current_ips)
@@ -272,11 +272,11 @@ def _freebsd_set_vlan_up(iface, vlan, ip, netmask=24):
 
 def _linux_remove_vlan(iface, vlan):
     run_cmd('ip link del dev %s.%s' % (iface, vlan))
-    print 'Removed old VLAN %s from %s.' % (vlan, iface)
+    print('Removed old VLAN %s from %s.' % (vlan, iface))
 
 def _freebsd_remove_vlan(iface, vlan):
     run_cmd('ifconfig vlan%s destroy' % vlan)
-    print 'Removed old VLAN %s from %s.' % (vlan, iface)
+    print('Removed old VLAN %s from %s.' % (vlan, iface))
 
 def main():
     global URL_BASE
@@ -339,7 +339,7 @@ def main():
     elif kernel == 'FreeBSD':
         net_funcs = freebsd_net_funcs
     else:
-        print >>sys.stderr, 'Error: unsupported system: %s' % kernel
+        print('Error: unsupported system: %s' % kernel, file=sys.stderr)
         sys.exit(1)
 
     preserve_vlans = set()
@@ -350,7 +350,7 @@ def main():
             except ValueError:
                 low_str,_,high_str = vlan_spec.partition('-')
                 try:
-                    preserve_vlans.update(range(int(low_str), int(high_str)+1))
+                    preserve_vlans.update(list(range(int(low_str), int(high_str)+1)))
                 except ValueError:
                     parser.error('Invalid vlan_spec: {!r}'.format(vlan_spec))
 
@@ -358,14 +358,14 @@ def main():
         try:
             for iface in args.interface:
                 do_update(net_funcs, iface, args.etcdir, preserve_vlans=preserve_vlans)
-        except UpdateFailed, e:
+        except UpdateFailed as e:
             sys.exit(1)
     else:
         try:
             import daemon
         except ImportError:
-            print >>sys.stderr, "Daemon mode requires the 'daemon' python module from:"
-            print >>sys.stderr, "https://pypi.python.org/pypi/python-daemon"
+            print("Daemon mode requires the 'daemon' python module from:", file=sys.stderr)
+            print("https://pypi.python.org/pypi/python-daemon", file=sys.stderr)
             sys.exit(1)
 
         try:
@@ -377,8 +377,8 @@ def main():
             try:
                 from daemon.pidlockfile import PIDLockFile
             except ImportError:
-                print >>sys.stderr, "Daemon mode requires the 'lockfile' python module from:"
-                print >>sys.stderr, "https://pypi.python.org/pypi/lockfile"
+                print("Daemon mode requires the 'lockfile' python module from:", file=sys.stderr)
+                print("https://pypi.python.org/pypi/lockfile", file=sys.stderr)
 
         args.pid_file = os.path.abspath(args.pid_file)
         args.log_file = os.path.abspath(args.log_file)
@@ -414,10 +414,10 @@ def main():
                 try:
                     for iface in args.interface:
                         do_update(net_funcs, iface, args.etcdir, preserve_vlans=preserve_vlans)
-                except UpdateFailed, e:
+                except UpdateFailed as e:
                     pass
                 except:
-                    print >>sys.stderr, "Unhandled exception:"
+                    print("Unhandled exception:", file=sys.stderr)
                     sys.excepthook(*sys.exc_info())
                 time.sleep(random.gauss(args.poll_time, args.poll_time/10))
 
