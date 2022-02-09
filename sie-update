@@ -17,7 +17,7 @@ import json
 
 URL_BASE = 'http://update.sie-network.net:51080/sie-update/v2/'
 
-SIE_UPDATE_VERSION = '0.3.0'
+SIE_UPDATE_VERSION = '0.5.0'
 
 FNAME_CHALIAS = 'nmsgtool.chalias'
 FNAME_GRALIAS = 'nmsg.gralias'
