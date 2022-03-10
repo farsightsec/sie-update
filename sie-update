@@ -114,7 +114,7 @@ def update_file(fname, url, cache_dir=None):
     old_contents = None
     if os.path.isfile(fname):
         old_contents = open(fname).read()
-    new_contents = http_fetch_contents(url, cache_dir)
+    new_contents = http_fetch_contents(url, cache_dir).decode("utf-8")
     if old_contents != new_contents:
         open(fname, 'w').write(new_contents)
         print('Updated %s from %s.' % (fname, url))
@@ -135,7 +135,7 @@ def do_update(funcs, iface, etcdir, preserve_vlans=[]):
     funcs['set_link_up'](iface)
     
     try:
-        conf = json.loads(conf_json)
+        conf = json.loads(conf_json.decode("utf-8"))
     except:
         print('Error: failed to parse SIE configuration\n', file=sys.stderr)
         raise
