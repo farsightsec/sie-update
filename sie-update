@@ -161,8 +161,7 @@ def do_update(funcs, iface, etcdir, preserve_vlans=[]):
 
 def _linux_get_hw_address(iface):
     try:
-        rc, stdout, stderr = run_cmd('ip link show %s' % iface)
-        hwaddr = re.findall('link/ether ([0-9a-f:]+)', stdout)[0]
+        hwaddr = open('/sys/class/net/%s/address' % iface).read().rstrip()
         return hwaddr
     except:
         print('Error: unable to determine hardware address for interface %s' % iface, file=sys.stderr)
