@@ -84,12 +84,11 @@ def cache_put_contents(url, data, cache_dir):
     cache_file = cache_file_for_url(url, cache_dir)
     if VERBOSE:
         print('storing %s to cache file %s' % (url, cache_file), file=sys.stderr)
-    with tempfile.NamedTemporaryFile(dir=cache_dir, prefix='cache') as f:
+    with tempfile.NamedTemporaryFile(dir=cache_dir, prefix='cache', delete=False) as f:
         f.write(data)
         f.file.close()
         os.chmod(f.name, 0o644)
         os.rename(f.name, cache_file)
-        f.delete = False
 
 def http_fetch_contents(url, cache_dir=None):
     if VERBOSE:
