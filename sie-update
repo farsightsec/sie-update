@@ -48,7 +48,7 @@ def run_cmd(cmd, failok=False):
         print('command "%s" returned non-zero exit code %d' % (cmd, rc), file=sys.stderr)
     if not failok and rc != 0:
         raise CommandFailed
-    return (rc, stdout, stderr)
+    return (rc, stdout.decode("utf-8"), stderr.decode("utf-8"))
 
 def get_cache_dir(base_dir, create=True):
     cache_dir = os.path.join(base_dir, 'sie-update')
