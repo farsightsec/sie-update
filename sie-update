@@ -386,6 +386,8 @@ def main():
             class file_wrapper:
                 def __init__(self, severity=logging.INFO):
                     self._severity = severity
+                def flush(self):
+                    pass
                 def write(self, msg):
                     logger = logging.getLogger('sie-update')
                     msg = msg.rstrip()
