@@ -1,0 +1,13 @@
+[Unit]
+Description=SIE Interface Updater
+After=network.target
+ConditionPathExists=/etc/default/sie-update
+
+[Service]
+Type=forking
+EnvironmentFile=/etc/default/sie-update
+ExecStart=/bin/sh -c "/usr/sbin/sie-update -d `echo "${INTERFACE}" | sed -E 's/(^| +)/ -i /g'` "${OPTIONS}""
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
