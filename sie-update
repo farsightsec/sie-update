@@ -38,8 +38,8 @@ def run_cmd(cmd, failok=False):
     if VERBOSE:
         print(cmd)
     p = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
-    stdout = p.stdout.read()
-    stderr = p.stderr.read()
+    stdout = p.stdout.read().decode("utf-8")
+    stderr = p.stderr.read().decode("utf-8")
     if VERBOSE:
         sys.stdout.write(stdout)
         sys.stderr.write(stderr)
@@ -48,7 +48,7 @@ def run_cmd(cmd, failok=False):
         print('command "%s" returned non-zero exit code %d' % (cmd, rc), file=sys.stderr)
     if not failok and rc != 0:
         raise CommandFailed
-    return (rc, stdout.decode("utf-8"), stderr.decode("utf-8"))
+    return (rc, stdout, stderr)
 
 def get_cache_dir(base_dir, create=True):
     cache_dir = os.path.join(base_dir, 'sie-update')
