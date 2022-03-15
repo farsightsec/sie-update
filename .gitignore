@@ -1,5 +1,11 @@
-debian/files
+*~
+*.egg-info
+__pycache__
+.eggs
+.pybuild
 debian/*.log
 debian/*.debhelper
 debian/*.substvars
+debian/debhelper-build-stamp
+debian/files
 debian/sie-update/

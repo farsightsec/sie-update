@@ -1,6 +1,8 @@
 sie-update (0.5.0-1) debian-fsi; urgency=medium
 
   * Provide Python3 support.
+  * Provide copyright under Apache 2.0.
+  * Update Python packaging.
 
  -- Farsight Security, Inc. <software@farsightsecurity.com>  Wed, 09 Feb 2022 22:19:09 +0000
 

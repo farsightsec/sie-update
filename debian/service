@@ -6,7 +6,7 @@ ConditionPathExists=/etc/default/sie-update
 [Service]
 Type=simple
 EnvironmentFile=/etc/default/sie-update
-ExecStart=/usr/sbin/sie-update -d -i $INTERFACE $OPTIONS
+ExecStart=/usr/bin/sie-update -d -i $INTERFACE $OPTIONS
 
 [Install]
 WantedBy=multi-user.target
