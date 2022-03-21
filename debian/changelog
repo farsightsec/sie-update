@@ -1,3 +1,13 @@
+sie-update (0.5.0-1) debian-fsi; urgency=medium
+
+  * Provide Python3 support.
+  * Simplify interface hwaddr determination by using sysfs instead of ip(8) for
+    portability
+  * Provide copyright under Apache 2.0.
+  * Update Python packaging.
+
+ -- Farsight Security, Inc. <software@farsightsecurity.com>  Wed, 09 Feb 2022 22:19:09 +0000
+
 sie-update (0.4.1-1) debian-fsi; urgency=medium
 
   * Update to reflect PIDLockFile's move from daemon library to lockfile
