@@ -1,6 +1,8 @@
 sie-update (0.5.0-1) debian-fsi; urgency=medium
 
   * Provide Python3 support.
+  * Simplify interface hwaddr determination by using sysfs instead of ip(8) for
+    portability
   * Provide copyright under Apache 2.0.
   * Update Python packaging.
 
